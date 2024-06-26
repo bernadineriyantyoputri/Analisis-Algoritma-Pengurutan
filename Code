@@ -1,0 +1,189 @@
+#include <iostream>
+#include <vector>
+#include <chrono>
+#include <algorithm>
+#include <iomanip>
+#include <random>
+
+using namespace std;
+using namespace std::chrono;
+
+void bubbleSort(vector<int>& arr) {
+    int n = arr.size();
+    for (int i = 0; i < n-1; i++) {
+        for (int j = 0; j < n-i-1; j++) {
+            if (arr[j] > arr[j+1]) {
+                swap(arr[j], arr[j+1]);
+            }
+        }
+    }
+}
+
+void insertionSort(vector<int>& arr) {
+    int n = arr.size();
+    for (int i = 1; i < n; i++) {
+        int key = arr[i];
+        int j = i - 1;
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j--;
+        }
+        arr[j + 1] = key;
+    }
+}
+
+void selectionSort(vector<int>& arr) {
+    int n = arr.size();
+    for (int i = 0; i < n-1; i++) {
+        int min_idx = i;
+        for (int j = i+1; j < n; j++) {
+            if (arr[j] < arr[min_idx]) {
+                min_idx = j;
+            }
+        }
+        swap(arr[min_idx], arr[i]);
+    }
+}
+
+void merge(vector<int>& arr, int l, int m, int r) {
+    int n1 = m - l + 1;
+    int n2 = r - m;
+
+    vector<int> L(n1), R(n2);
+
+    for (int i = 0; i < n1; i++)
+        L[i] = arr[l + i];
+    for (int j = 0; j < n2; j++)
+        R[j] = arr[m + 1 + j];
+
+    int i = 0, j = 0, k = l;
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) {
+            arr[k] = L[i];
+            i++;
+        } else {
+            arr[k] = R[j];
+            j++;
+        }
+        k++;
+    }
+
+    while (i < n1) {
+        arr[k] = L[i];
+        i++;
+        k++;
+    }
+
+    while (j < n2) {
+        arr[k] = R[j];
+        j++;
+        k++;
+    }
+}
+
+void mergeSort(vector<int>& arr, int l, int r) {
+    if (l >= r)
+        return;
+    int m = l + (r - l) / 2;
+    mergeSort(arr, l, m);
+    mergeSort(arr, m + 1, r);
+    merge(arr, l, m, r);
+}
+
+int partition(vector<int>& arr, int low, int high) {
+    int pivot = arr[high];
+    int i = (low - 1);
+    for (int j = low; j <= high - 1; j++) {
+        if (arr[j] < pivot) {
+            i++;
+            swap(arr[i], arr[j]);
+        }
+    }
+    swap(arr[i + 1], arr[high]);
+    return (i + 1);
+}
+
+void quickSort(vector<int>& arr, int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
+}
+
+vector<int> generateData(int N, const string& condition) {
+    vector<int> data(N);
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> dis(1, N * 2);
+
+    if (condition == "random") {
+        for (int i = 0; i < N; ++i) {
+            data[i] = dis(gen);
+        }
+    } else if (condition == "reversed") {
+        for (int i = 0; i < N; ++i) {
+            data[i] = N - i;
+        }
+    } else if (condition == "sorted") {
+        for (int i = 0; i < N; ++i) {
+            data[i] = i;
+        }
+    }
+    return data;
+}
+
+template<typename Func>
+long long measureTime(Func sortFunc, vector<int>& arr) {
+    auto start = chrono::high_resolution_clock::now();
+    sortFunc(arr);
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double, micro> duration = end - start;
+    return static_cast<long long>(duration.count());
+}
+
+int main() {
+    vector<int> sizes = {10, 100, 500, 1000, 10000};
+    vector<string> conditions = {"random", "reversed", "sorted"};
+
+    for (const auto& condition : conditions) {
+        cout << "Condition: " << condition << endl;
+
+        // Print table header
+        cout << setw(10) << "Size" 
+             << setw(15) << "Bubble Sort" 
+             << setw(15) << "Insertion Sort" 
+             << setw(15) << "Selection Sort" 
+             << setw(15) << "Merge Sort" 
+             << setw(15) << "Quick Sort" 
+             << endl;
+        cout << string(80, '-') << endl;
+
+        for (const auto& size : sizes) {
+            vector<int> data = generateData(size, condition);
+            vector<int> dataCopy = data;
+
+            cout << setw(10) << size;
+
+            dataCopy = data;
+            cout << setw(15) << measureTime(bubbleSort, dataCopy);
+
+            dataCopy = data;
+            cout << setw(15) << measureTime(insertionSort, dataCopy);
+
+            dataCopy = data;
+            cout << setw(15) << measureTime(selectionSort, dataCopy);
+
+            dataCopy = data;
+            cout << setw(15) << measureTime([&dataCopy](vector<int>& arr){ mergeSort(arr, 0, arr.size() - 1); }, dataCopy);
+
+            dataCopy = data;
+            cout << setw(15) << measureTime([&dataCopy](vector<int>& arr){ quickSort(arr, 0, arr.size() - 1); }, dataCopy);
+
+            cout << endl;
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
